@@ -12,6 +12,8 @@ class Document
   private $group;      // Current RTF group
   private $char;
   private $uc;
+  private $depth = 0;
+  private const MAX_DEPTH = 1000;
 
   public function __construct($rtf)
   {
@@ -80,6 +82,11 @@ class Document
   // Store state of document on stack.
   protected function ParseStartGroup()
   {
+    $this->depth++;
+    if ($this->depth > self::MAX_DEPTH) {
+      throw new \Exception("Parse error: Maximum nesting depth exceeded. RTF may be malformed.");
+    }
+
     $group = new Group();
 
     // Is there a current group? Then make the new group its child:
@@ -103,6 +110,7 @@ class Document
   // Retrieve state of document from stack.
   protected function ParseEndGroup()
   {
+    $this->depth--;
     $this->group = $this->group->parent;
     // Retrieve last uc value from stack
     array_pop($this->uc);

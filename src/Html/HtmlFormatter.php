@@ -18,6 +18,7 @@ class HtmlFormatter
   private $state;
   private $openedTags;
   private $RTFencoding;
+  private $inTable = false;
 
 
   // By default, HtmlFormatter uses HTML_ENTITIES for code conversion.
@@ -54,6 +55,8 @@ class HtmlFormatter
     $this->state = new State();
     array_push($this->states, $this->state);
 
+    // Reset table state
+    $this->inTable = false;
     // Keep track of opened html tags
     $this->openedTags = array('span' => false, 'p' => false, 'a' => false);
     // Create the first paragraph
@@ -64,6 +67,11 @@ class HtmlFormatter
       $append = $this->openedTags['span'] ? '</span>' : '';
       $append .= $this->openedTags['a'] ? '</a>' : '';
       $append .= $this->openedTags['p'] ? '</p>' : '';
+      // Close any remaining open table
+      if ($this->inTable) {
+        $append .= '</table>';
+        $this->inTable = false;
+      }
 
       return $this->output . $append;
 
@@ -248,7 +256,11 @@ class HtmlFormatter
 
     // If a destination was a HYPERLINK
     if ($this->state->href) {
-        $this->OpenTag('a','target="_blank" href='.$this->state->href);
+        $url = trim($this->state->href, " \"");
+        // Only allow safe URL protocols
+        if (preg_match('/^(https?|ftp|mailto):/i', $url)) {
+          $this->OpenTag('a', 'target="_blank" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"');
+        }
     }
 
     // Push a new state onto the stack:
@@ -317,8 +329,8 @@ class HtmlFormatter
       case 'v': // hidden
         $this->state->setHidden($word->parameter);
         break;
-      case 'fs': // Font size
-        $this->state->setFontsize(ceil(($word->parameter / 24) * 16));
+      case 'fs': // Font size (RTF uses half-points, convert to px: half-points / 1.5)
+        $this->state->setFontsize(ceil($word->parameter / 1.5));
         break;
       case 'f': // Font
         $this->state->setFont($word->parameter);
@@ -342,6 +354,15 @@ class HtmlFormatter
       case 'highlight':
         $this->state->setHcolor($word->parameter);
         break;
+
+      /*
+       * Text alignment
+       */
+
+      case 'ql': $this->state->setAlignment('left'); break;
+      case 'qr': $this->state->setAlignment('right'); break;
+      case 'qc': $this->state->setAlignment('center'); break;
+      case 'qj': $this->state->setAlignment('justify'); break;
 
       /*
        * Special characters
@@ -369,10 +390,44 @@ class HtmlFormatter
         break;
 
       /*
+       * Tables
+       */
+
+      case 'trowd': // Start of table row definition
+        if (!$this->inTable) {
+          $this->CloseTags();
+          $this->output .= '<table border="1" cellpadding="4" cellspacing="0">';
+          $this->inTable = true;
+        }
+        $this->output .= '<tr>';
+        $this->output .= '<td>';
+        $this->OpenTag('p');
+        break;
+      case 'cell': // End of table cell
+        $this->CloseTags();
+        $this->output .= '</td><td>';
+        $this->OpenTag('p');
+        break;
+      case 'row': // End of table row
+        $this->CloseTags();
+        // Remove the last empty <td> opened by 'cell'
+        if (substr($this->output, -4) === '<td>') {
+          $this->output = substr($this->output, 0, -4);
+        }
+        $this->output .= '</tr>';
+        break;
+      case 'lastrow': // Last row indicator - close table
+        if ($this->inTable) {
+          $this->output .= '</table>';
+          $this->inTable = false;
+          $this->OpenTag('p');
+        }
+        break;
+
+      /*
        * Paragraphs
        */
       case 'par':
-      case 'row':
         // Close previously opened tags
         $this->CloseTags();
         // Begin a new paragraph
@@ -596,32 +651,14 @@ class HtmlFormatter
     }
   }
 
-  protected function ord_utf8($chr)
+  protected function ord_utf8($chr): int
   {
-    $ord0 = ord($chr);
-    if ($ord0 >= 0 && $ord0 <= 127)
-      return $ord0;
-
-    $ord1 = ord($chr[1]);
-    if ($ord0 >= 192 && $ord0 <= 223)
-      return ($ord0 - 192) * 64 + ($ord1 - 128);
-
-    $ord2 = ord($chr[2]);
-    if ($ord0 >= 224 && $ord0 <= 239)
-      return ($ord0 - 224) * 4096 + ($ord1 - 128) * 64 + ($ord2 - 128);
-
-    $ord3 = ord($chr[3]);
-    if ($ord0 >= 240 && $ord0 <= 247)
-      return ($ord0 - 240) * 262144 + ($ord1 - 128) * 4096 + ($ord2 - 128) * 64 + ($ord3 - 128);
-
-    $ord4 = ord($chr[4]);
-    if ($ord0 >= 248 && $ord0 <= 251)
-      return ($ord0 - 248) * 16777216 + ($ord1 - 128) * 262144 + ($ord2 - 128) * 4096 + ($ord3 - 128) * 64 + ($ord4 - 128);
-
-    if ($ord0 >= 252 && $ord0 <= 253)
-      return ($ord0 - 252) * 1073741824 + ($ord1 - 128) * 16777216 + ($ord2 - 128) * 262144 + ($ord3 - 128) * 4096 + ($ord4 - 128) * 64 + (ord($chr[5]) - 128);
-
-    trigger_error("Invalid Unicode character: {$chr}");
+    $code = mb_ord($chr, 'UTF-8');
+    if ($code === false) {
+      trigger_error("Invalid Unicode character: {$chr}");
+      return 0;
+    }
+    return $code;
   }
 
   /**

@@ -13,6 +13,7 @@ class State
   private $background;
   private $hcolor;
   private $font;
+  private $alignment;
   public $href;
 
   public static $fonttbl = array();
@@ -61,6 +62,7 @@ class State
     $this->background = null;
     $this->hcolor = null;
     $this->font = isset($defaultFont) ? $defaultFont : null;
+    $this->alignment = null;
     $this->href = null;
   }
   
@@ -81,6 +83,7 @@ class State
       $style .= $font->toStyle();
     }
     if($this->fontsize != 0) $style .= "font-size:{$this->fontsize}px;";
+    if(isset($this->alignment)) $style .= "text-align:{$this->alignment};";
     // Font color:
     if(isset($this->fontcolor)) {
       // Check if color is set. in particular when it's the 'auto' color
@@ -123,6 +126,9 @@ class State
     
     // Compare fonts
     if ($this->font != $state->font) return false;
+
+    // Compare alignment
+    if ($this->alignment != $state->alignment) return false;
     
     // Compare urls
     if ($this->href != $state->href) return false;
@@ -306,6 +312,24 @@ class State
   public function setFont($font): self
   {
     $this->font = $font;
+
+    return $this;
+  }
+
+  /**
+   * Get the value of alignment
+   */
+  public function getAlignment()
+  {
+    return $this->alignment;
+  }
+
+  /**
+   * Set the value of alignment
+   */
+  public function setAlignment($alignment): self
+  {
+    $this->alignment = $alignment;
 
     return $this;
   }
