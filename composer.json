@@ -1,5 +1,5 @@
 {
-  "name": "henck/rtf-html-php",
+  "name": "henck/rtf-to-html",
   "description": "RTF to HTML converter in PHP",
   "keywords": ["rtf", "converter"],
   "type": "library",
