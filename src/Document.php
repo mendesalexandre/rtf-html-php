@@ -10,8 +10,8 @@ class Document
   private $len;        // Length of RTF string
   public $root = null; // Root group
   private $group;      // Current RTF group
-  private $char; //fixed dinamic declarations
-  private $uc; //fixed dinamic declarations
+  private $char;
+  private $uc;
 
   public function __construct($rtf)
   {
@@ -165,7 +165,7 @@ class Document
             $this->pos = $this->pos + 3;
         
         // Break if it's an RTF scope delimiter
-        elseif ($this->char == '{' || $this->char == '{')
+        elseif ($this->char == '{' || $this->char == '}')
           break;
         
         // - To include an RTF delimiter in skippable data, it must be

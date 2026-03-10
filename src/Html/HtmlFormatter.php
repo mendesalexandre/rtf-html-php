@@ -10,8 +10,6 @@ class HtmlFormatter
   private $encoding;
   private $defaultFont;
 
-  // dinamic declarations fixed
-  
   private $previousState;
   private $states;
   /**
@@ -45,6 +43,9 @@ class HtmlFormatter
   {
     // Clear current output
     $this->output = '';
+    // Clear static state from previous documents
+    State::$fonttbl = array();
+    State::$colortbl = array();
     // Keep track of style modifications
     $this->previousState = null;
     // and create a stack of states
@@ -158,11 +159,15 @@ class HtmlFormatter
     for ($i=1; $i<$c; $i++) { // Iterate through colors
       if($colorTblGrp[$i] instanceof \RtfHtmlPhp\ControlWord) {
         // Extract RGB color and convert it to hex string
-        $color = sprintf('#%02x%02x%02x', // hex string format
-                            $colorTblGrp[$i]->parameter, // red
-                            $colorTblGrp[$i+1]->parameter, // green
-                            $colorTblGrp[$i+2]->parameter); // blue
-        $i+=2;
+        if ($i + 2 < $c
+            && $colorTblGrp[$i+1] instanceof \RtfHtmlPhp\ControlWord
+            && $colorTblGrp[$i+2] instanceof \RtfHtmlPhp\ControlWord) {
+          $color = sprintf('#%02x%02x%02x', // hex string format
+                              $colorTblGrp[$i]->parameter, // red
+                              $colorTblGrp[$i+1]->parameter, // green
+                              $colorTblGrp[$i+2]->parameter); // blue
+          $i+=2;
+        }
       } elseif($colorTblGrp[$i] instanceof \RtfHtmlPhp\Text) {
         // This is a delimiter ';' so
         if ($i != 1) { // Store the already extracted color

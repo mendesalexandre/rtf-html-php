@@ -39,7 +39,11 @@ class Image
     $output = "<img src=\"data:image/{$this->format};base64,";
     
     if (isset($this->binarySize)) { // process binary data
-      return;
+      if ($this->ImageData !== null) {
+        $output .= base64_encode($this->ImageData);
+      } else {
+        return '';
+      }
     } else { // process hexadecimal data
       $output .= base64_encode(pack('H*',$this->ImageData));
     }

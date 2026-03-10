@@ -13,7 +13,8 @@ class State
   private $background;
   private $hcolor;
   private $font;
-  
+  public $href;
+
   public static $fonttbl = array();
   public static $colortbl = array();
   private static $highlight = array(
@@ -89,7 +90,7 @@ class State
     // Background color:
     if (isset($this->background)) {
       // Check if color is set. in particular when it's the 'auto' color
-      if (self::$colortbl[$this->background])
+      if (array_key_exists($this->background, self::$colortbl) && self::$colortbl[$this->background])
         $style .= "background-color:" . self::$colortbl[$this->background] . ";";
     
     // Highlight color:

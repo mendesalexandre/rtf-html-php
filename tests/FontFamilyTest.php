@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 use RtfHtmlPhp\Document;
 use RtfHtmlPhp\Html\HtmlFormatter;
 
-final class FontFamilyTestTest extends TestCase
+final class FontFamilyTest extends TestCase
 {
   public function testParseFontFamilyHtml(): void
   {
