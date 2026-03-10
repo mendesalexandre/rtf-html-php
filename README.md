@@ -1,54 +1,90 @@
-# rtf-html-php
+# rtf-html-php (Fork)
 
 _An RTF to HTML converter in PHP_
 
-In a recent project, I desperately needed an RTF to HTML converter written in PHP. Googling around turned up some matches, but I could not get them to work properly. Also, one of them called `passthru()` to use a RTF2HTML executable, which is something I didn’t want. I was looking for an RTF to HTML converter written purely in PHP.
+> **Este repositório é um fork de [henck/rtf-html-php](https://github.com/henck/rtf-html-php)**, mantido por [Alexandre Teixeira Mendes](https://github.com/mendesalexandre) com correções de bugs e melhorias de estabilidade.
 
-Since I couldn’t find anything ready-made, I sat down and coded one up myself. It’s short, and it works, implementing the subset of RTF tags that you’ll need in HTML and ignoring the rest. As it turns out, the RTF format isn’t that complicated when you really look at it, but it isn’t something you code a parser for in 15 minutes either.
+## Correções aplicadas neste fork
 
-## How to use it
+- **Bug critico no parser**: condição duplicada `'{' || '{'` corrigida para `'{' || '}'` no skip de caracteres Unicode
+- **Bounds check na color table**: evita fatal error com RTFs malformados
+- **Vazamento de state entre documentos**: limpa `fonttbl`/`colortbl` estáticas ao formatar um novo documento
+- **Propriedade `$href` declarada explicitamente** na classe `State` (compatibilidade PHP 8+)
+- **Check de background color**: adicionado `array_key_exists()` para evitar warnings
+- **Imagens binárias**: tratamento de binary data em vez de retorno vazio silencioso
+- **Nome de classe no teste**: `FontFamilyTestTest` corrigido para `FontFamilyTest`
+- **PHPUnit atualizado**: de `^8` para `^9.0|^10.0` (compatível com PHP 8+)
 
-Install this package using composer. Then do this:
+## Instalação
+
+Para usar este fork via Composer, adicione ao seu `composer.json`:
+
+```json
+{
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/mendesalexandre/rtf-html-php"
+    }
+  ],
+  "require": {
+    "henck/rtf-html-php": "dev-master"
+  }
+}
+```
+
+Depois rode:
+
+```shell
+composer update
+```
+
+## Como usar
 
 ```php
 use RtfHtmlPhp\Document;
+use RtfHtmlPhp\Html\HtmlFormatter;
 
-$rtf = file_get_contents("test.rtf"); 
-$document = new Document($rtf); // or use a string directly
+$rtf = file_get_contents("documento.rtf");
+$document = new Document($rtf);
+
+$formatter = new HtmlFormatter('UTF-8');
+$html = $formatter->Format($document);
 ```
 
-`Document` will raise an exception if the RTF document could not be parsed. Parse errors will generate PHP notices.
+`Document` lança uma exception se o RTF não puder ser parseado.
 
-If you’d like to see what the parser read (for debug purposes), then call this:
+Para debug do parse tree:
 
 ```php
 echo $document;
 ```
 
-To convert the parser’s parse tree to HTML, call this (but only if the RTF was successfully parsed):
+### Encoding
 
-```php
-use RtfHtmlPhp\Html\HtmlFormatter;
-$formatter = new HtmlFormatter();
-echo $formatter->Format($document);
-```
-
-For enhanced compatibility the default character encoding of the converted RTF unicode characters is set to `HTML-ENTITIES`. To change the default encoding, you can initialize the `Html` object with the desired encoding supported by `mb_list_encodings()`: ex. `UTF-8`
+Por padrão o encoding é `HTML-ENTITIES`. Para usar UTF-8:
 
 ```php
 $formatter = new HtmlFormatter('UTF-8');
 ```
 
-## Install via Composer
+Qualquer encoding suportado por `mb_list_encodings()` pode ser usado.
+
+## Requisitos
+
+- PHP ^8.0
+- Extensão `php-mbstring`
+
+## Testes
 
 ```shell
-composer require henck/rtf-to-html
+composer test
 ```
 
-## Caveats
+## Licença
 
-* Please note that rtf-html-php requires your PHP installation to support the `mb_convert_encoding` function. Therefore you must have the `php-mbstring` module installed. For fresh PHP installations, it will usually be there.
+Este projeto é licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-## License
+## Créditos
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Projeto original por [Alexander van Oostenrijk](https://github.com/henck) - [henck/rtf-html-php](https://github.com/henck/rtf-html-php).
